@@ -6,16 +6,47 @@ enum member_role {
   member
 }
 
+enum item_category {
+  vegetable
+  meat
+  seasoning
+  staple
+  fruit
+  dairy
+  other
+}
+
+enum item_unit {
+  pcs
+  grams
+  ml
+  box
+  bottle
+}
+
+enum inventory_source {
+  receipt_scan
+  photo_scan
+  manual
+}
+
+enum meal_type {
+  breakfast
+  lunch
+  dinner
+  snack
+}
+
 
 Table users {
-  id uuid [primary key]
+  id uuid [pk]
   display_name varchar
   email varchar [unique, not null]
   created_at timestamp [default: `now()`]
 }
 
 Table households {
-  id uuid [primary key]
+  id uuid [pk]
   name varchar [not null]
   created_at timestamp [default: `now()`]
 }
@@ -32,3 +63,110 @@ Table household_members {
 
 Ref: household_members.user_id > users.id [delete: cascade]
 Ref: household_members.household_id > households.id [delete: cascade]
+
+Table items {
+  id uuid [pk]
+  name varchar [not null]
+  category item_category
+  default_unit item_unit
+  default_shelf_life_days int
+  image_url varchar
+  household_id uuid
+  created_at timestamp [default:`now()`]
+  created_by uuid
+}
+
+Ref: items.household_id > households.id [delete: cascade]
+Ref: items.created_by > users.id [delete: set null]
+
+Table recipes {
+  id uuid [pk]
+  name varchar [not null]
+  description text
+  cook_time_minutes int
+  servings int
+  household_id uuid
+  created_at timestamp [default: `now()`]
+  created_by uuid
+}
+
+Ref: recipes.created_by > users.id [delete: set null]
+Ref: recipes.household_id > households.id [delete: cascade]
+
+Table recipe_items {
+  recipe_id uuid
+  item_id uuid
+  quantity numeric
+  unit item_unit
+  notes text
+  indexes {
+    (recipe_id, item_id) [pk]
+  }
+}
+
+Ref: recipe_items.recipe_id > recipes.id [delete: cascade]
+Ref: recipe_items.item_id > items.id [delete: restrict]
+
+Table receipts {
+  id uuid [pk]
+  household_id uuid
+  store_name varchar
+  total_amount numeric
+  receipt_date date
+  image_url varchar
+  raw_ocr_text text
+  uploaded_by uuid
+  created_at timestamp [default: `now()`]
+}
+
+Ref: receipts.household_id > households.id [delete: cascade]
+Ref: receipts.uploaded_by > users.id [delete: set null]
+
+Table inventory_entries {
+  id uuid [pk]
+  household_id uuid [not null]
+  item_id uuid [not null]
+  quantity numeric [not null]
+  unit item_unit
+  expiry_date date
+  purchased_at timestamp
+  source inventory_source
+  receipt_id uuid
+  created_at timestamp [default: `now()`]
+}
+
+Ref: inventory_entries.household_id > households.id [delete: cascade]
+Ref: inventory_entries.item_id > items.id [delete: restrict]
+Ref: inventory_entries.receipt_id > receipts.id [delete: set null]
+
+Table shopping_list_items {
+  id uuid [pk]
+  household_id uuid [not null]
+  item_id uuid [not null]
+  quantity_needed numeric
+  unit item_unit
+  is_purchased boolean
+  added_by uuid
+  notes text
+  created_at timestamp [default: `now()`]
+}
+
+Ref: shopping_list_items.household_id > households.id [delete: cascade]
+Ref: shopping_list_items.item_id > items.id [delete: cascade]
+Ref: shopping_list_items.added_by > users.id [delete: set null]
+
+Table meal_plans {
+  id uuid [pk]
+  household_id uuid [not null]
+  plan_date date
+  meal_type meal_type
+  recipe_id uuid
+  servings_planned int
+  notes text
+  created_by uuid
+  created_at timestamp [default: `now()`]
+}
+
+Ref: meal_plans.household_id > households.id [delete: cascade]
+Ref: meal_plans.recipe_id > recipes.id [delete: set null]
+Ref: meal_plans.created_by > users.id [delete: set null]

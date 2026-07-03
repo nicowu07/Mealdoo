@@ -3,7 +3,7 @@
   
   # Mealdoo
   
-  A web application for household grocery management and meal planning, tailored for Australian shoppers.
+  A web application for household grocery management and meal planning.
 </div>
 
 ---
@@ -34,7 +34,7 @@ Early design phase. Database schema and architecture in `/docs`.
 
 ## 📚 Documentation
 
-- [Database schema (DBML)](./docs/schema.dbml)
+- [Database design](./docs/database-design.md)
 
 ## 📄 License
 
