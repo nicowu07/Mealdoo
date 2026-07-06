@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: mealdoo-postgres
+    environment:
+      POSTGRES_USER: mealdoo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: mealdoo
+    ports:
+      - "5432:5432"
+    volumes:
+      - mealdoo-postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  mealdoo-postgres-data: 
