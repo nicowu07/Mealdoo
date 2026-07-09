@@ -50,7 +50,7 @@ class InventoryEntry(Base):
         UUID, ForeignKey("households.id", ondelete="CASCADE")
     )
     quantity: Mapped[Decimal] = mapped_column(Numeric(precision=10, scale=2))
-    unit: Mapped[ItemUnit | None] = mapped_column(Enum(ItemUnit, name="item_unit"))
+    unit: Mapped[ItemUnit | None] = mapped_column(Enum(ItemUnit, name="item_unit", create_type=False))
     expiry_date: Mapped[date | None] = mapped_column(Date)
     purchased_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     source: Mapped[InventorySource] = mapped_column(Enum(InventorySource, name="inventory_source"))

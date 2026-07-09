@@ -3,7 +3,9 @@ from app.models.user import User
 from app.models.household import Household, HouseholdMember, MemberRole
 from app.models.item import Item, ItemCategory, ItemUnit
 from app.models.recipe import Recipe, RecipeItem
-from app.models.receipt import Receipt, ReceiptItem, InventorySource
+from app.models.receipt import Receipt, InventorySource, InventoryEntry
+from app.models.shopping_list import ShoppingListItem
+from app.models.meal_plan import MealPlan, MealType
 
 __all__ = [
     "Base", 
@@ -11,5 +13,7 @@ __all__ = [
     "Household", "HouseholdMember", "MemberRole", 
     "Item", "ItemCategory", "ItemUnit", 
     "Recipe", "RecipeItem",
-    "Receipt", "ReceiptItem", "InventorySource"
+    "Receipt", "InventorySource", "InventoryEntry",
+    "ShoppingListItem",
+    "MealPlan", "MealType"
     ]

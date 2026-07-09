@@ -139,3 +139,20 @@ Decisions likely to require schema changes as the product evolves:
 - **Vector embeddings for item recognition** — a `pgvector` column on `items` for CLIP embeddings, once the photo recognition pipeline is built.
 - **Recipe images** — a separate `recipe_images` table if recipes support multiple photos and step-by-step images.
 - **Meal plan grouping** — if users request "save this week's plan as a template", a `meal_plan_templates` table will be introduced.
+
+## Implementation Notes
+
+### Enum Type Sharing Across Tables
+
+Some enum types (`item_unit`) are referenced by multiple tables. When defining these in SQLAlchemy models, only the first model definition should let SQLAlchemy create the enum type in the database; subsequent references must use `create_type=False` to prevent duplicate-creation errors.
+
+In migration files that reference existing enum types across migrations, `postgresql.ENUM` (from `sqlalchemy.dialects`) is preferred over the generic `sa.Enum` because it strictly respects the `create_type=False` parameter.
+
+### On-Delete Coherence with Nullability
+
+Foreign keys with `ON DELETE SET NULL` behavior must be declared as nullable in the model definition. Otherwise, the delete operation will fail at runtime due to conflicting NOT NULL constraint. Example: `meal_plans.recipe_id` uses SET NULL, so it must be `Mapped[UUID | None]`.
+
+### Enum Cleanup in Downgrade
+
+Alembic's autogenerate creates enum types in `upgrade()` but doesn't 
+automatically drop them in `downgrade()`. Each migration that creates new enum types must manually add `sa.Enum(name='xxx').drop(op.get_bind())` statements in `downgrade()`, placed after all `drop_table` operations. Enum types that are only *referenced* (not created) by a migration must NOT be dropped in that migration's downgrade.

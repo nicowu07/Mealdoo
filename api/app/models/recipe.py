@@ -36,5 +36,5 @@ class RecipeItem(Base):
         UUID, ForeignKey("items.id", ondelete="RESTRICT"), primary_key=True
     )
     quantity: Mapped[Decimal | None] = mapped_column(Numeric(precision=10, scale=2))
-    unit: Mapped[ItemUnit | None] = mapped_column(Enum(ItemUnit, name="item_unit"))
+    unit: Mapped[ItemUnit | None] = mapped_column(Enum(ItemUnit, name="item_unit", create_type=False))
     notes: Mapped[str | None] = mapped_column(Text)
