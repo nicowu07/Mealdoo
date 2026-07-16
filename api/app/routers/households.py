@@ -3,6 +3,7 @@ from app.deps import SessionDep
 from app.models import Household, HouseholdMember, MemberRole
 from app.schemas import HouseholdCreate, HouseholdRead
 from uuid import UUID
+from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(prefix="/households", tags=["households"])
 
@@ -20,7 +21,7 @@ def create_household(household_in: HouseholdCreate, session: SessionDep):
     print("household.id after add:", household.id)
     try:
         session.commit()
-    except Exception as e:
+    except IntegrityError as e:
         session.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Error creating household member")
     
