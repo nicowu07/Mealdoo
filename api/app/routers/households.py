@@ -9,6 +9,14 @@ from sqlalchemy import select
 
 router = APIRouter(prefix="/households", tags=["households"])
 
+def require_household_member(session: SessionDep, household_id: UUID, user_id: UUID, owner_only: bool = False) -> HouseholdMember:
+    membership = session.get(HouseholdMember, (user_id, household_id))
+    if not membership:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not a member of this household")
+    if owner_only and membership.role != MemberRole.owner:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the owner can perform this action")
+    return membership
+
 @router.post("", response_model=HouseholdRead, status_code=status.HTTP_201_CREATED)
 def create_household(household_in: HouseholdCreate, session: SessionDep, current_user: CurrentUserDep):
     household = Household(name=household_in.name)
@@ -34,9 +42,7 @@ def get_household(household_id: UUID, session: SessionDep, current_user: Current
     household = session.get(Household, household_id)
     if not household:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Household not found")
-    membership = session.get(HouseholdMember, (current_user.id, household.id))
-    if not membership:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not allowed to access this household")
+    require_household_member(session, household_id, current_user.id, owner_only=False)
     return household
 
 @router.get("", response_model=list[HouseholdRead])
@@ -55,9 +61,7 @@ def update_household(household_id: UUID, household_in: HouseholdUpdate, session:
     if not household:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Household not found")
 
-    membership = session.get(HouseholdMember, (current_user.id, household_id))
-    if not membership or membership.role != MemberRole.owner:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only Owner can update household information")
+    require_household_member(session, household_id, current_user.id, owner_only=True)
     for field, value in household_in.model_dump(exclude_unset=True).items():
         setattr(household, field, value)
 
@@ -74,10 +78,7 @@ def delete_household(household_id: UUID, session: SessionDep, current_user: Curr
     if not household:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Household not found")
 
-    membership = session.get(HouseholdMember, (current_user.id, household_id))
-    if not membership or membership.role != MemberRole.owner:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only Owner can delete household")
-    
+    require_household_member(session, household_id, current_user.id, owner_only=True)
     session.delete(household)
     try:
         session.commit()
@@ -91,9 +92,7 @@ def add_household_member(household_id: UUID, member_in: HouseholdMemberCreate, s
     if not household:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Household not found")
 
-    membership = session.get(HouseholdMember, (current_user.id, household_id))
-    if not membership or membership.role != MemberRole.owner:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only Owner can add members to the household")
+    require_household_member(session, household_id, current_user.id, owner_only=True)
 
     new_member = HouseholdMember(household_id=household_id, user_id=member_in.user_id, role=member_in.role)
     session.add(new_member)
@@ -104,3 +103,15 @@ def add_household_member(household_id: UUID, member_in: HouseholdMemberCreate, s
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Error adding member to household")
     session.refresh(new_member)
     return new_member
+
+@router.get("/{household_id}/members", response_model=list[HouseholdMemberRead])
+def get_household_members(household_id: UUID, session: SessionDep, current_user: CurrentUserDep):
+    household = session.get(Household, household_id)
+    if not household:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Household not found")
+
+    require_household_member(session, household_id, current_user.id, owner_only=False)  # Allow members to view the list of members
+
+    stmt = select(HouseholdMember).where(HouseholdMember.household_id == household_id)
+    members = session.execute(stmt).scalars().all()
+    return members
